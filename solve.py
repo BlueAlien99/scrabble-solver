@@ -7,7 +7,7 @@ DICTIONARY_PATH = './dictionary.txt'
 
 def read_words(dictionary_path):
     with open(dictionary_path) as file:
-        return sorted([line.strip() for line in file])
+        return sorted([line.strip().upper() for line in file])
 
 
 def read_letters():
@@ -21,82 +21,82 @@ def stringify_menu(menu):
     return str
 
 
-def generate_subsets(letters, current_subsets = []):
+def generate_subsets(tokens: list[str]):
     subsets = []
-    for letter in letters:
+    for token in tokens:
         to_append = []
         for subset in subsets:
             for i in range(len(subset)+1):
-                to_append.append(subset[:i] + [letter] + subset[i:])
+                to_append.append(subset[:i] + [token] + subset[i:])
         subsets.extend(to_append)
-        subsets.append([letter])
+        subsets.append([token])
     return list(set([''.join(subset) for subset in subsets]))
 
 
-def binary_search(a, x, lo=0, hi=None):
-    if hi is None: hi = len(a)
-    pos = bisect_left(a, x, lo, hi)                  # find insertion position
-    return True if pos != hi and a[pos] == x else False  # don't walk off the end
+def is_valid_word(dictionary: list[str], word: str):
+    pos = bisect_left(dictionary, word)
+    return True if pos != len(dictionary) and dictionary[pos] == word else False
 
 
-def filter_valid_words(valid_words, words):
-    return filter(lambda word: binary_search(valid_words, word), words)
+def filter_valid_words(dictionary: list[str], words: list[str]):
+    return list(filter(lambda word: is_valid_word(dictionary, word), words))
 
 
 def filter_containing_subword(scored, subword):
     return list(filter(lambda word: subword in word[1] and subword != word[1], scored))
 
 
-def score_word(word):
+def score_word(word: str):
     score = 0
     for letter in word:
         score += points[letter]
     return score
 
 
-def score_words(words):
-    scored = []
-    for word in words:
-        scored.append((score_word(word), word))
+def score_words(words: list[str]):
+    scored = [(score_word(word), word) for word in words]
     scored.sort(reverse=True)
     return scored
 
 
-def generate_from_letters(words, letters):
-    return score_words(filter_valid_words(words, generate_subsets(letters)))
+def generate_from_tokens(dictionary: list[str], tokens: list[str]):
+    return score_words(filter_valid_words(dictionary, generate_subsets(tokens)))
 
 
 menu = {
-    'x': 'Exit',
+    '/': 'Exit',
     'u': 'Update letters',
     'a': 'Any word using letters',
-    's': 'Enter subword finding mode (0 to exit)'
+    's': 'Enter subword finding mode (/ to exit)'
 }
 
 
-if __name__ == '__main__':
-    words = read_words(DICTIONARY_PATH)
+def main():
+    dictionary = read_words(DICTIONARY_PATH)
     letters = []
 
-    exit = False
-    while not exit:
+    should_exit = False
+    while not should_exit:
         print(stringify_menu(menu))
         option = input('What do you want to do? ')
         match option:
-            case 'x':
-                exit = True
+            case '/':
+                should_exit = True
             case 'u':
                 letters = read_letters()
             case 'a':
-                print(generate_from_letters(words, letters))
+                print(generate_from_tokens(dictionary, letters))
             case 's':
                 subword_exit = False
                 while not subword_exit:
                     subword = input('Subword: ').upper()
-                    if subword == '0':
+                    if subword == '/':
                         subword_exit = True
                     else:
-                        print(filter_containing_subword(generate_from_letters(words, letters + [subword]), subword))
+                        print(filter_containing_subword(generate_from_tokens(dictionary, letters + [subword]), subword))
             case _:
                 print('Wrong option!')
 
+
+if __name__ == '__main__':
+    main()
