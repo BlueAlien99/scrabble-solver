@@ -1,4 +1,5 @@
 from bisect import bisect_left
+import re
 
 from letters import points
 
@@ -11,7 +12,7 @@ def read_words(dictionary_path):
 
 
 def read_letters():
-    return list(input('Your letters: ').upper())
+    return list(input('Your letters (blank=_): ').upper())
 
 
 def stringify_menu(menu):
@@ -25,17 +26,20 @@ def generate_subsets(tokens: list[str]):
     subsets = []
     for token in tokens:
         to_append = []
-        for subset in subsets:
-            for i in range(len(subset)+1):
-                to_append.append(subset[:i] + [token] + subset[i:])
+        temp_tokens = [f"_{key}_" for key in points.keys()] if token == '_' else [token]
+        for temp_token in temp_tokens:
+            for subset in subsets:
+                for i in range(len(subset)+1):
+                    to_append.append(subset[:i] + [temp_token] + subset[i:])
+            to_append.append([temp_token])
         subsets.extend(to_append)
-        subsets.append([token])
     return list(set([''.join(subset) for subset in subsets]))
 
 
 def is_valid_word(dictionary: list[str], word: str):
-    pos = bisect_left(dictionary, word)
-    return True if pos != len(dictionary) and dictionary[pos] == word else False
+    clean_word = word.replace('_', '')
+    pos = bisect_left(dictionary, clean_word)
+    return True if pos != len(dictionary) and dictionary[pos] == clean_word else False
 
 
 def filter_valid_words(dictionary: list[str], words: list[str]):
@@ -48,7 +52,7 @@ def filter_containing_subword(scored, subword):
 
 def score_word(word: str):
     score = 0
-    for letter in word:
+    for letter in re.sub(r"_._", "", word):
         score += points[letter]
     return score
 
